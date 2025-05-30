@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upcoming Soccer Matches</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 35%, #24243e 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            perspective: 1000px;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        .bg-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.7; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            transform-style: preserve-3d;
+            animation: slideInFromTop 1s ease-out;
+        }
+
+        @keyframes slideInFromTop {
+            0% { 
+                transform: translateY(-100px) rotateX(-90deg); 
+                opacity: 0; 
+            }
+            100% { 
+                transform: translateY(0) rotateX(0deg); 
+                opacity: 1; 
+            }
+        }
+
+        .header h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 3s ease infinite;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 15px;
+            transform: translateZ(50px);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            font-size: 1.4rem;
+            color: rgba(255, 255, 255, 0.8);
+            transform: translateZ(30px);
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-weight: 600;
+            transform: translateZ(20px);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #4ecdc4;
+            transform: translateZ(30px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(78, 205, 196, 0.3);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+            border-color: #4ecdc4;
+            transform: translateZ(40px) scale(1.1);
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.5rem;
+            margin: 50px 0;
+            transform-style: preserve-3d;
+        }
+
+        .spinner-3d {
+            width: 80px;
+            height: 80px;
+            margin: 30px auto;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: spin3d 2s linear infinite;
+        }
+
+        .spinner-3d::before,
+        .spinner-3d::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 4px solid transparent;
+            border-top: 4px solid #4ecdc4;
+            border-radius: 50%;
+        }
+
+        .spinner-3d::after {
+            transform: rotateX(90deg);
+            border-top-color: #ff6b6b;
+        }
+
+        @keyframes spin3d {
+            0% { transform: rotateX(0deg) rotateY(0deg); }
+            100% { transform: rotateX(360deg) rotateY(360deg); }
+        }
+
+        .matches-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+            transform-style: preserve-3d;
+        }
+
+        .match-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 35px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            transform-style: preserve-3d;
+            cursor: pointer;
+            overflow: hidden;
+            animation: cardSlideIn 0.8s ease-out forwards;
+            opacity: 0;
+            transform: translateY(50px) rotateX(-15deg);
+        }
+
+        @keyframes cardSlideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0) rotateX(0deg);
+            }
+        }
+
+        .match-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            background-size: 300% 100%;
+            animation: gradientMove 3s ease infinite;
+        }
+
+        @keyframes gradientMove {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .match-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(78, 205, 196, 0.1), rgba(255, 107, 107, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 25px;
+        }
+
+        .match-card:hover {
+            transform: translateY(-20px) rotateX(5deg) rotateY(5deg) scale(1.02);
+            box-shadow: 
+                0 30px 60px rgba(0,0,0,0.3),
+                0 0 50px rgba(78, 205, 196, 0.2);
+        }
+
+        .match-card:hover::after {
+            opacity: 1;
+        }
+
+        .competition {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-align: center;
+            transform: translateZ(10px);
+        }
+
+        .teams {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            transform-style: preserve-3d;
+        }
+
+        .team {
+            text-align: center;
+            flex: 1;
+            transform: translateZ(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .match-card:hover .team {
+            transform: translateZ(30px);
+        }
+
+        .team-name {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 8px;
+            text-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .team-short {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+        }
+
+        .vs {
+            font-size: 2rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 25px;
+            transform: translateZ(40px);
+            text-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .match-card:hover .vs {
+            transform: translateZ(50px) scale(1.1) rotateY(360deg);
+        }
+
+        .match-info {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 20px;
+            text-align: center;
+            transform: translateZ(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .match-card:hover .match-info {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateZ(25px);
+        }
+
+        .match-date {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .match-time {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        .countdown {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #4ecdc4;
+            font-weight: 600;
+        }
+
+        /* Interactive floating action button */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 100;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .fab:hover {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .error {
+            background: rgba(231, 76, 60, 0.1);
+            border: 2px solid rgba(231, 76, 60, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 1.2rem;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .api-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 50px;
+            color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translateZ(10px);
+        }
+
+        /* Add this to your <style> section */
+        .api-info.glass {
+            text-align: center;
+        }
+
+        .api-info h3 {
+            margin-bottom: 15px;
+            color: #4ecdc4;
+            font-size: 1.3rem;
+        }
+
+        .api-url {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            margin: 15px 0;
+            border-left: 4px solid #4ecdc4;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .matches-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .match-card {
+                padding: 25px;
+                margin: 0 10px;
+            }
+            
+            .teams {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .vs {
+                margin: 15px 0;
+                transform: rotate(90deg);
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Enhanced animations */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Glassmorphism enhancement */
+        .glass {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-particles" id="particles"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>⚽ LIVE MATCHES</h1>
+            <p>Where Football Dreams Come Alive ⚽✨</p>
+            <div class="controls">
+                <button class="control-btn active" onclick="filterMatches('all')">All Matches</button>
+                <button class="control-btn" onclick="filterMatches('today')">Today</button>
+                <button class="control-btn" onclick="filterMatches('tomorrow')">Tomorrow</button>
+                <button class="control-btn" onclick="filterMatches('week')">This Week</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner-3d"></div>
+            <p>Loading epic matches...</p>
+        </div>
+
+        <div id="matches-container" class="matches-grid" style="display: none;"></div>
+        <div id="error-container" style="display: none;"></div>
+
+        <div class="api-info glass">
+            <h3>🚀 API Information</h3>
+            <p><strong>Data Source:</strong> Football-Data.org API</p>
+            <div class="api-url">https://api.football-data.org/v4/matches</div>
+
+            <p>Made by Chandra Mukherjee </p>
+        </div>
+    </div>
+
+    <div class="fab" onclick="refreshMatches()" title="Refresh Matches">
+        🔄
+    </div>
+
+    <script>
+        let currentFilter = 'all';
+        let allMatches = [];
+
+        // Create floating particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.width = Math.random() * 6 + 2 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        async function fetchMatches() {
+            const loadingEl = document.getElementById('loading');
+            const matchesContainer = document.getElementById('matches-container');
+            const errorContainer = document.getElementById('error-container');
+
+            try {
+                // Enhanced mock data with more realistic information
+                const mockData = {
+                    matches: [
+                        {
+                            id: 1,
+                            homeTeam: { name: "Manchester City", shortName: "MCI" },
+                            awayTeam: { name: "Liverpool", shortName: "LIV" },
+                            utcDate: "2025-05-31T15:00:00Z",
+                            competition: { name: "Premier League" },
+                            status: "SCHEDULED"
+                        },
+                        {
+                            id: 2,
+                            homeTeam: { name: "Real Madrid", shortName: "RMA" },
+                            awayTeam: { name: "FC Barcelona", shortName: "BAR" },
+                            utcDate: "2025-06-01T20:00:00Z",
+                            competition: { name: "La Liga" },
+                            status: "SCHEDULED"
+                        },
+                        {
+                            id: 3,
+                            homeTeam: { name: "Bayern Munich", shortName: "FCB" },
+                            awayTeam: { name: "Borussia Dortmund", shortName: "BVB" },
+                            utcDate: "2025-06-01T17:30:00Z",
+                            competition: { name: "Bundesliga" },
+                            status: "SCHEDULED"
+                        },
+                        {
+                            id: 4,
+                            homeTeam: { name: "Juventus", shortName: "JUV" },
+                            awayTeam: { name: "AC Milan", shortName: "MIL" },
+                            utcDate: "2025-06-02T19:45:00Z",
+                            competition: { name: "Serie A" },
+                            status: "SCHEDULED"
+                        },
+                        {
+                            id: 5,
+                            homeTeam: { name: "Paris Saint-Germain", shortName: "PSG" },
+                            awayTeam: { name: "Olympique Marseille", shortName: "OM" },
+                            utcDate: "2025-06-03T21:00:00Z",
+                            competition: { name: "Ligue 1" },
+                            status: "SCHEDULED"
+                        },
+                        {
+                            id: 6,
+                            homeTeam: { name: "Arsenal", shortName: "ARS" },
+                            awayTeam: { name: "Chelsea", shortName: "CHE" },
+                            utcDate: "2025-05-31T16:30:00Z",
+                            competition: { name: "Premier League" },
+                            status: "SCHEDULED"
+                        },
+                        {
+                            id: 7,
+                            homeTeam: { name: "Atletico Madrid", shortName: "ATM" },
+                            awayTeam: { name: "Sevilla", shortName: "SEV" },
+                            utcDate: "2025-06-04T18:00:00Z",
+                            competition: { name: "La Liga" },
+                            status: "SCHEDULED"
+                        },
+                        {
+                            id: 8,
+                            homeTeam: { name: "Inter Milan", shortName: "INT" },
+                            awayTeam: { name: "AS Roma", shortName: "ROM" },
+                            utcDate: "2025-06-05T20:30:00Z",
+                            competition: { name: "Serie A" },
+                            status: "SCHEDULED"
+                        }
+                    ]
+                };
+
+                // Simulate API delay with enhanced loading
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                allMatches = mockData.matches;
+                loadingEl.style.display = 'none';
+                displayMatches(allMatches);
+
+            } catch (error) {
+                console.error('Error fetching matches:', error);
+                loadingEl.style.display = 'none';
+                showError('Failed to load matches. The universe is temporarily offline. 🌌');
+            }
+        }
+
+        function displayMatches(matches) {
+            const container = document.getElementById('matches-container');
+            container.style.display = 'grid';
+
+            if (!matches || matches.length === 0) {
+                showError('No matches found for the selected filter. 🔍');
+                return;
+            }
+
+            container.innerHTML = matches.map((match, index) => {
+                const matchDate = new Date(match.utcDate);
+                const now = new Date();
+                const timeDiff = matchDate - now;
+                
+                const formattedDate = matchDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                const formattedTime = matchDate.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZoneName: 'short'
+                });
+
+                // Calculate countdown
+                const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                
+                let countdown = '';
+                if (timeDiff > 0) {
+                    if (days > 0) countdown = `${days}d ${hours}h ${minutes}m`;
+                    else if (hours > 0) countdown = `${hours}h ${minutes}m`;
+                    else countdown = `${minutes}m`;
+                } else {
+                    countdown = 'LIVE NOW!';
+                }
+
+                return `
+                    <div class="match-card" style="animation-delay: ${index * 0.1}s">
+                        <div class="competition">${match.competition.name}</div>
+                        <div class="teams">
+                            <div class="team">
+                                <div class="team-name">${match.homeTeam.name}</div>
+                                <div class="team-short">${match.homeTeam.shortName}</div>
+                            </div>
+                            <div class="vs">VS</div>
+                            <div class="team">
+                                <div class="team-name">${match.awayTeam.name}</div>
+                                <div class="team-short">${match.awayTeam.shortName}</div>
+                            </div>
+                        </div>
+                        <div class="match-info">
+                            <div class="match-date">${formattedDate}</div>
+                            <div class="match-time">${formattedTime}</div>
+                            <div class="countdown">${countdown}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click interactions to cards
+            document.querySelectorAll('.match-card').forEach((card, index) => {
+                card.addEventListener('click', () => {
+                    card.style.transform = 'translateY(-30px) rotateY(180deg) scale(1.05)';
+                    setTimeout(() => {
+                        card.style.transform = 'translateY(-20px) rotateX(5deg) rotateY(5deg) scale(1.02)';
+                    }, 300);
+                });
+            });
+        }
+
+        function filterMatches(filter) {
+            currentFilter = filter;
+            const buttons = document.querySelectorAll('.control-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const weekEnd = new Date(today);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+
+            let filteredMatches = allMatches;
+
+            switch(filter) {
+                case 'today':
+                    filteredMatches = allMatches.filter(match => {
+                        const matchDate = new Date(match.utcDate);
+                        return matchDate >= today && matchDate < tomorrow;
+                    });
+                    break;
+                case 'tomorrow':
+                    filteredMatches = allMatches.filter(match => {
+                        const matchDate = new Date(match.utcDate);
+                        const dayAfterTomorrow = new Date(tomorrow);
+                        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+                        return matchDate >= tomorrow && matchDate < dayAfterTomorrow;
+                    });
+                    break;
+                case 'week':
+                    filteredMatches = allMatches.filter(match => {
+                        const matchDate = new Date(match.utcDate);
+                        return matchDate >= today && matchDate < weekEnd;
+                    });
+                    break;
+                default:
+                    filteredMatches = allMatches;
+            }
+
+            displayMatches(filteredMatches);
+        }
+
+        function refreshMatches() {
+            const fab = document.querySelector('.fab');
+            fab.style.transform = 'scale(1.2) rotate(360deg)';
+            setTimeout(() => {
+                fab.style.transform = 'scale(1.1)';
+                fetchMatches();
+            }, 300);
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.style.display = 'block';
+            errorContainer.innerHTML = `
+                <div class="error">
+                    <h3>⚠️ Oops!</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // Initialize the enhanced app
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            fetchMatches();
+        });
+
+        // Add mouse movement parallax effect
+        document.addEventListener('mousemove', (e) => {
+            const cards = document.querySelectorAll('.match-card');
+            const mouseX = e.clientX / window.innerWidth;
+            const mouseY = e.clientY / window.innerHeight;
+
+            cards.forEach((card, index) => {
+                const rotateX = (mouseY - 0.5) * 10;
+                const rotateY = (mouseX - 0.5) * 10;
+                card.style.transform += ` rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            });
+        });
+    </script>
+</body>
+</html>
