@@ -3,4 +3,4 @@ Full Stack Assignment, SportsOrca
 
 ## Project Preview
 &nbsp;
-<a><img src="strikers_paradise.jpeg" height="600" width="600" /></a>
+<a><img src="strikers_paradise.jpeg" height="800" width="800" /></a>
